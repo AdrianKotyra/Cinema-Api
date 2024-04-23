@@ -57,8 +57,8 @@ const average = (arr) =>
 
 function Logo() {
   return  <div className="logo">
-  <span role="img">🍿</span>
-  <h1>usePopcorn</h1>
+  <span role="img"></span>
+  <h1>Cinema City</h1>
 </div>
 }
 function Search({query, setQuery}){
@@ -105,8 +105,40 @@ function SummaryMoviesWatched({watched, avgImdbRating, avgUserRating, avgRuntime
   </div>
 </div>
 }
-function MovieContainer({movieSingleObject, children}) {
-  return  <li key={movieSingleObject.imdbID}>
+
+function ListOfMovies({ watched, setSelectedId }) {
+  return (
+    <ul className="list">
+      {watched.map((movie) => (
+        <MovieContainer
+          key={movie.imdbID}
+          movieSingleObject={movie}
+          setSelectedId={setSelectedId}
+        >
+          <div>
+            <p>
+              <span>⭐️</span>
+              <span>{movie.imdbRating}</span>
+            </p>
+            <p>
+              <span>🌟</span>
+              <span>{movie.userRating}</span>
+            </p>
+            <p>
+              <span>⏳</span>
+              <span>{movie.runtime} min</span>
+            </p>
+          </div>
+        </MovieContainer>
+      ))}
+    </ul>
+  );
+}
+
+function MovieContainer({movieSingleObject, children, setSelectedId}) {
+
+  
+  return  <li onClick={()=>setSelectedId(movieSingleObject.imdbID)}key={movieSingleObject.imdbID}>
   <img src={movieSingleObject.Poster} alt={`${movieSingleObject.Title} poster`} />
   <h3>{movieSingleObject.Title}</h3>
   {children}
@@ -114,58 +146,41 @@ function MovieContainer({movieSingleObject, children}) {
 </li>
 }
 
-function ListOfMovies({watched}) {
-  return     <ul className="list">
-  {watched.map((movie) => ( <MovieContainer movieSingleObject = {movie}> 
-  <div>
-    <p>
-      <span>⭐️</span>
-      <span>{movie.imdbRating}</span>
-    </p>
-    <p>
-      <span>🌟</span>
-      <span>{movie.userRating}</span>
-    </p>
-    <p>
-      <span>⏳</span>
-      <span>{movie.runtime} min</span>
-    </p>
-  </div> 
-  </MovieContainer>
-   
-  ))}
-</ul>
-}
-
 function Box({children}) {
   return <div className="box">
     {children}
     </div>
 }
-function WatchedBox({watched, avgImdbRating, avgUserRating, avgRuntime}){
+function WatchedBox({ setSelectedId, watched, avgImdbRating, avgUserRating, avgRuntime }) {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-  
     <>
-  
-      <Button onClick={() => setIsOpen((open) => !open)}>  
-        {isOpen ? "–" : "+"} 
+      <Button onClick={() => setIsOpen((open) => !open)}>
+        {isOpen ? "–" : "+"}
       </Button>
-      
+
       {isOpen && (
         <>
-          <SummaryMoviesWatched watched={watched}/>
-          <ListOfMovies watched={watched} avgImdbRating={avgImdbRating} avgUserRating={avgUserRating} avgRuntime={avgRuntime}/>
+          <SummaryMoviesWatched
+            watched={watched}
+            avgImdbRating={avgImdbRating}
+            avgUserRating={avgUserRating}
+            avgRuntime={avgRuntime}
+          />
+          <ListOfMovies
+            setSelectedId={setSelectedId} 
+            watched={watched}
+            avgImdbRating={avgImdbRating}
+            avgUserRating={avgUserRating}
+            avgRuntime={avgRuntime}
+          />
         </>
-        )
-      }
+      )}
     </>
-    
-      
-  
-  )
+  );
 }
+
 
 function Button({children, onClick}){
   return <button className="btn-toggle" onClick={onClick}>
@@ -173,7 +188,7 @@ function Button({children, onClick}){
   </button>
   
 }
-function ListBox({movies}){
+function ListBox({movies, setSelectedId}){
   const [isOpen, setIsOpen] = useState(true);
   return  (
   <>
@@ -183,9 +198,9 @@ function ListBox({movies}){
 
     {isOpen && (
       
-      <ul className="list">
+      <ul className="list list-movies">
         {movies?.map((movie) => (
-          <MovieContainer movieSingleObject = {movie}> 
+          <MovieContainer key ={movie.index} setSelectedId={setSelectedId} movieSingleObject = {movie}> 
             <p>
               <span>🗓</span>
               <span>{movie.Year}</span>
@@ -222,8 +237,12 @@ function ErrorMessage({message}){
 
   </p>
 }
-function MovieDetails({selectedId}){
-  return <div className="details">{selectedId}</div>
+function MovieDetails({selectedId, setSelectedId}){
+  return <div className="details">
+    <button onClick={()=>setSelectedId(null)}className="btn-back">&larr;</button>
+    {selectedId}
+    
+  </div>
 
 }
 export default  function App(){
@@ -232,7 +251,8 @@ export default  function App(){
   const [watched, setWatched] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [selectedId, setSelectedId] = useState("fdsfds");
+  const [selectedId, setSelectedId] = useState(null);
+  
   console.log(selectedId)
 
   useEffect(function(){
@@ -286,13 +306,13 @@ export default  function App(){
       <Main>
         <Box>
           {isLoading&&<Loader/>}
-          {!isLoading && !error && < ListBox movies={movies}/>}
+          {!isLoading && !error && < ListBox setSelectedId = {setSelectedId}  movies={movies}/>}
           {error && <ErrorMessage message={error}/>}
         </Box>
 
-        <Box>
-          {selectedId?
-          <MovieDetails selectedId={selectedId}/> 
+        <Box >
+          {selectedId? 
+          <MovieDetails setSelectedId = {setSelectedId}selectedId={selectedId}/> 
           :
           <WatchedBox watched={watched} avgImdbRating={avgImdbRating} avgUserRating={avgUserRating} avgRuntime={avgRuntime}/> 
           
