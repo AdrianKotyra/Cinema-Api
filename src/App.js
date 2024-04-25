@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import StartRating from "./components/starRating/starRating"
+
 
 // const tempMovieData = [
 //   {
@@ -106,11 +108,12 @@ function SummaryMoviesWatched({watched, avgImdbRating, avgUserRating, avgRuntime
 </div>
 }
 
-function ListOfMovies({ watched, setSelectedId }) {
+function ListOfMovies({ watched, selectedId, setSelectedId }) {
   return (
     <ul className="list">
       {watched.map((movie) => (
         <MovieContainer
+          selectedId={selectedId}
           key={movie.imdbID}
           movieSingleObject={movie}
           setSelectedId={setSelectedId}
@@ -135,10 +138,15 @@ function ListOfMovies({ watched, setSelectedId }) {
   );
 }
 
-function MovieContainer({movieSingleObject, children, setSelectedId}) {
+function MovieContainer({movieSingleObject, children, setSelectedId, selectedId}) {
 
   
-  return  <li onClick={()=>setSelectedId(movieSingleObject.imdbID)}key={movieSingleObject.imdbID}>
+  return  <li onClick={
+  (selectedId===movieSingleObject.imdbID? 
+  ()=>setSelectedId(null): 
+  ()=>setSelectedId(movieSingleObject.imdbID))}
+  key={movieSingleObject.imdbID}
+  >
   <img src={movieSingleObject.Poster} alt={`${movieSingleObject.Title} poster`} />
   <h3>{movieSingleObject.Title}</h3>
   {children}
@@ -188,7 +196,7 @@ function Button({children, onClick}){
   </button>
   
 }
-function ListBox({movies, setSelectedId}){
+function ListBox({movies, setSelectedId, selectedId}){
   const [isOpen, setIsOpen] = useState(true);
   return  (
   <>
@@ -200,7 +208,7 @@ function ListBox({movies, setSelectedId}){
       
       <ul className="list list-movies">
         {movies?.map((movie) => (
-          <MovieContainer key ={movie.index} setSelectedId={setSelectedId} movieSingleObject = {movie}> 
+          <MovieContainer selectedId={selectedId} key ={movie.index} setSelectedId={setSelectedId} movieSingleObject = {movie}> 
             <p>
               <span>🗓</span>
               <span>{movie.Year}</span>
@@ -238,10 +246,61 @@ function ErrorMessage({message}){
   </p>
 }
 function MovieDetails({selectedId, setSelectedId}){
+  const [isloading, setIsLoading] = useState(false);
+ 
+  const [movie, setMovie] = useState({})
+  const {
+  Title: title, 
+  Year: year, 
+  Poster: poster,
+  Runtime: runtime,
+  imdbRating,
+  Plot: plot,
+  Released: released,
+  Actors: actors,
+  Director: director,
+  Genre: genre
+  } = movie;
+
+  useEffect(function(){
+    async function getMovieDetails(){
+      setIsLoading(true)
+      const res = await fetch(`http://www.omdbapi.com/?apikey=${key}&i=${selectedId}`)
+      const data = await res.json();
+      setMovie(data)
+      setIsLoading(false)
+    }
+    getMovieDetails()
+  },[selectedId])
+
   return <div className="details">
-    <button onClick={()=>setSelectedId(null)}className="btn-back">&larr;</button>
-    {selectedId}
-    
+    {isloading? 
+    <Loader/>: 
+    <>
+   
+      <header>
+      <button onClick={()=>setSelectedId(null)}className="btn-back">&larr;</button>
+      <img src={poster} alt={`Poster of the ${movie}`}/>
+      <div className="details-overview">
+        <h2 className="title"></h2>
+        <p> {released} &bull; {runtime} </p>
+        <p>{genre}</p>
+        <p>{imdbRating} imbd rating</p>
+        <p>Directed by {director}</p>
+      </div>
+      </header>
+
+      <section>
+        <div className="rating">
+          <StartRating  size={22} maxRating={10}/>
+        </div>
+      
+        <p> <em> {plot}</em></p>
+        <p> Starring {actors}</p>
+
+
+      </section>
+    </>}
   </div>
 
 }
@@ -253,7 +312,7 @@ export default  function App(){
   const [error, setError] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   
-  console.log(selectedId)
+ 
 
   useEffect(function(){
     async function fetchMovies() {
@@ -264,9 +323,6 @@ export default  function App(){
   
         if(!res.ok) throw new Error("Something went wrong");
         
-
-        
-  
         const data = await res.json()
         if(data.response==='false') throw new Error("Movie not found")
 
@@ -306,7 +362,7 @@ export default  function App(){
       <Main>
         <Box>
           {isLoading&&<Loader/>}
-          {!isLoading && !error && < ListBox setSelectedId = {setSelectedId}  movies={movies}/>}
+          {!isLoading && !error && <ListBox selectedId={selectedId}setSelectedId = {setSelectedId}  movies={movies}/>}
           {error && <ErrorMessage message={error}/>}
         </Box>
 
