@@ -32,6 +32,8 @@ const starContainerStyle = {
 }
 
 export default function StartRating({
+    starRating,
+    setStarRating,
     defaultRating=0,
     messages=[],
     maxRating=5, 
@@ -47,7 +49,7 @@ export default function StartRating({
         color,
         fontSize: `${size/2}px`
     }
-    const [starRating, setStarRating] = useState(defaultRating);
+    
     const [tempRating, setTempRating] = useState(0);
 
   
