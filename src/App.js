@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import StartRating from "./components/starRating/starRating"
+import StartRating from "./components/starRating/starRating";
 
 
 // const tempMovieData = [
@@ -94,11 +94,11 @@ function SummaryMoviesWatched({watched, avgImdbRating, avgUserRating, avgRuntime
     </p>
     <p>
       <span>⭐️</span>
-      <span>{avgImdbRating}</span>
+      <span>{avgImdbRating.toFixed(2)}</span>
     </p>
     <p>
       <span>🌟</span>
-      <span>{avgUserRating}</span>
+      <span>{avgUserRating.toFixed(2)}</span>
     </p>
     <p>
       <span>⏳</span>
@@ -107,7 +107,7 @@ function SummaryMoviesWatched({watched, avgImdbRating, avgUserRating, avgRuntime
   </div>
 </div>
 }
-function WatchedMovie({movie}){
+function WatchedMovie({movie, onDeleteWatched}){
   return (
   <li>
     <img src={movie.poster} alt={`${movie.Title} poster`} />
@@ -125,17 +125,18 @@ function WatchedMovie({movie}){
         <span>⏳</span>
         <span>{movie.runtime} min</span>
       </p>
+      <button className="btn-delete" onClick={()=>onDeleteWatched(movie.imdbID)}>X</button>
     </div>
-
+    
 
   </li>
   )
 }
-function ListOfMovies({ watched, selectedId, setSelectedId }) {
+function ListOfMovies({ onDeleteWatched, watched, selectedId, setSelectedId }) {
   return (
     <ul className="list">
       {watched.map((movie) => (
-        <WatchedMovie movie={movie}>
+        <WatchedMovie movie={movie} onDeleteWatched={onDeleteWatched}>
           <div>
             <p>
               <span>⭐️</span>
@@ -177,7 +178,7 @@ function Box({children}) {
     {children}
     </div>
 }
-function WatchedBox({ setSelectedId, watched, avgImdbRating, avgUserRating, avgRuntime }) {
+function WatchedBox({ onDeleteWatched, setSelectedId, watched, avgImdbRating, avgUserRating, avgRuntime }) {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
@@ -195,6 +196,7 @@ function WatchedBox({ setSelectedId, watched, avgImdbRating, avgUserRating, avgR
             avgRuntime={avgRuntime}
           />
           <ListOfMovies
+            onDeleteWatched={onDeleteWatched}
             setSelectedId={setSelectedId} 
             watched={watched}
             avgImdbRating={avgImdbRating}
@@ -263,10 +265,14 @@ function ErrorMessage({message}){
 
   </p>
 }
-function MovieDetails({onAddWatched, selectedId, setSelectedId, setStarRating, starRating}){
+function MovieDetails({watched, onAddWatched, selectedId, setSelectedId, setStarRating, starRating}){
   const [isloading, setIsLoading] = useState(false);
+  const isWatched = watched.map(movie=>movie.imdbID).includes(selectedId)
+  const watchedUserRating = watched.find((movie)=>movie.imdbID===selectedId)?.userRating 
+
  
   const [movie, setMovie] = useState({})
+
   const {
   Title: title, 
   Year: year, 
@@ -291,9 +297,10 @@ function MovieDetails({onAddWatched, selectedId, setSelectedId, setStarRating, s
     }
     onAddWatched(newWatchedMovie)
     setSelectedId(null)
+   
   }
-
   
+
   useEffect(function(){
     async function getMovieDetails(){
       setIsLoading(true)
@@ -304,6 +311,16 @@ function MovieDetails({onAddWatched, selectedId, setSelectedId, setStarRating, s
     }
     getMovieDetails()
   },[selectedId])
+
+  useEffect(function(){
+    document.title = `Title | ${title}`
+    return function()  {
+       document.title = `Cinema City`
+    }
+  },[title])
+
+
+
 
   return <div className="details">
     {isloading? 
@@ -324,8 +341,13 @@ function MovieDetails({onAddWatched, selectedId, setSelectedId, setStarRating, s
 
       <section>
         <div className="rating">
-          <StartRating  setStarRating={setStarRating} starRating={starRating} size={22} maxRating={10} />
-          {starRating>0&&  <button className="btn-add" onClick={handleAdd}>+ add to list</button>}
+          {!isWatched?
+          <>
+            <StartRating  setStarRating={setStarRating} starRating={starRating} size={22} maxRating={10} />
+            {starRating>0&&  <button className="btn-add" onClick={handleAdd}>+ add to list</button>}
+          </>
+      
+          : <p>You rated this movie with {watchedUserRating}</p> }
         
         </div>
       
@@ -348,10 +370,14 @@ export default  function App(){
   const [starRating, setStarRating] = useState();
   console.log(starRating)
 
+
+
  function handleAddMovie(movie){
   setWatched((watched)=> [...watched, movie])
  }
-
+  function handleDeleteWatched(id){
+    setWatched(watched=>watched.filter((movie)=>movie.imdbID !==id))
+  }
   useEffect(function(){
     async function fetchMovies() {
       try {
@@ -406,9 +432,20 @@ export default  function App(){
 
         <Box >
           {selectedId? 
-          <MovieDetails starRating={starRating}setStarRating={setStarRating}onAddWatched={handleAddMovie} setSelectedId = {setSelectedId}selectedId={selectedId}/> 
+          <MovieDetails 
+          watched={watched}
+          starRating={starRating}
+          setStarRating={setStarRating}
+          onAddWatched={handleAddMovie} 
+          setSelectedId = {setSelectedId}
+          selectedId={selectedId}/> 
           :
-          <WatchedBox watched={watched} avgImdbRating={avgImdbRating} avgUserRating={avgUserRating} avgRuntime={avgRuntime}/> 
+          <WatchedBox 
+          onDeleteWatched = {handleDeleteWatched}
+          watched={watched} 
+          avgImdbRating={avgImdbRating} 
+          avgUserRating={avgUserRating} 
+          avgRuntime={avgRuntime}/> 
           
           }
           
