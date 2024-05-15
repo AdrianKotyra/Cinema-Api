@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import './App.css';
 import App from './App';
-import StartRating from "./components/starRating/starRating"
+
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

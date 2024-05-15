@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import StartRating from "./components/starRating/starRating";
 
 
@@ -64,12 +64,29 @@ function Logo() {
 </div>
 }
 function Search({query, setQuery}){
+  const inputEl = useRef(null);
+
+  useEffect(function(){
+    function callback(e) {
+      if(document.activeElement===inputEl.current) return
+      if(e.code==="Enter") {
+        inputEl.current.focus()
+        setQuery("")
+      } 
+    
+    }
+    document.addEventListener("keydown", callback )
+    return ()=> document.addEventListener("keydown", callback )
+  
+  },[setQuery])
+
   return  <input
   className="search"
   type="text"
   placeholder="Search movies..."
   value={query}
   onChange={(e) => setQuery(e.target.value)}
+  ref={inputEl}
 />
 }
 function ResultsFound( movies) {
@@ -270,7 +287,21 @@ function MovieDetails({watched, onAddWatched, selectedId, setSelectedId, setStar
   const isWatched = watched.map(movie=>movie.imdbID).includes(selectedId)
   const watchedUserRating = watched.find((movie)=>movie.imdbID===selectedId)?.userRating 
 
- 
+  useEffect(function(){
+    function callBack(e){
+     
+      if(e.code === "Escape") {
+        setSelectedId(null)
+      }
+    
+    }
+    document.addEventListener("keydown", callBack)
+  
+
+    return function(){ 
+      document.removeEventListener("keydown", callBack) //<== remove event listener when the component dismount
+    }
+  }, [])
   const [movie, setMovie] = useState({})
 
   const {
@@ -285,6 +316,7 @@ function MovieDetails({watched, onAddWatched, selectedId, setSelectedId, setStar
   Director: director,
   Genre: genre
   } = movie;
+
   function handleAdd(){
     const newWatchedMovie = {
       userRating: starRating,
@@ -309,6 +341,7 @@ function MovieDetails({watched, onAddWatched, selectedId, setSelectedId, setStar
       setMovie(data)
       setIsLoading(false)
     }
+    
     getMovieDetails()
   },[selectedId])
 
@@ -363,27 +396,37 @@ function MovieDetails({watched, onAddWatched, selectedId, setSelectedId, setStar
 export default  function App(){
   const [query, setQuery] = useState("");
   const [movies, setMovies] = useState([]);
-  const [watched, setWatched] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [starRating, setStarRating] = useState();
-  console.log(starRating)
 
+  // const [watched, setWatched] = useState([]);
+  const [watched, setWatched] = useState(function(){
+    const storedValue = localStorage.getItem("watched");
+    return JSON.parse(storedValue); //<== setting up localstorage browser to state watched list array
+  })
 
 
  function handleAddMovie(movie){
-  setWatched((watched)=> [...watched, movie])
+  setWatched((watched)=> [...watched, movie]) //<== setting up localstorage browser to state watched list array
  }
+
+ useEffect(function(){
+  localStorage.setItem("watched", JSON.stringify(watched))
+  }, [watched])
+
   function handleDeleteWatched(id){
     setWatched(watched=>watched.filter((movie)=>movie.imdbID !==id))
   }
   useEffect(function(){
+    const controller = new AbortController();// <==== cancelling previous request if the new one is established
+
     async function fetchMovies() {
       try {
         setError('')
         setIsLoading(true)
-        const res = await fetch(`http://www.omdbapi.com/?apikey=${key}&s=${query}`)
+        const res = await fetch(`http://www.omdbapi.com/?apikey=${key}&s=${query}`, {signal: controller.signal})
   
         if(!res.ok) throw new Error("Something went wrong");
         
@@ -394,15 +437,24 @@ export default  function App(){
         
       }
       catch (err) {
-        console.error(err.message)
-        setError(err.message)
+        console.log(err.message)
+        if(err.name !== "AbortError") {
+          setError(err.message)
+        }
+        setError('')
+       
       }
       finally {
         setIsLoading(false)
       }
+     
    
     }
+    setSelectedId(null)
     fetchMovies()
+    return function(){// <==== cancelling previous request if the new one is established
+      controller.abort()
+    }
      
     
   }, [query])
